@@ -1,0 +1,3 @@
+As can be seen from the Code Output, the variables encoded when normalizing the data does affect the probability whether a customer would churn or not. Churn is expressed as a
+degree of customer inactivity or disengagement, observed over a given time. Based on the recency of activity which can be viewed from the encoded variables one can predict by an
+accuracy of 82.75% whether the customer of the bank will churn or not.
