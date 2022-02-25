@@ -1,0 +1,370 @@
+--------------------
+IMPORTING LIBRARIES
+--------------------
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sea
+import numpy as np
+import warnings
+warnings.filterwarnings(action = 'ignore')
+
+----------------------
+IMPORTING THE DATASET
+----------------------
+data = pd.read_csv("churn_prediction.csv")
+data.head(5)
+
+---------------------
+STUDYING THE DATASET
+---------------------
+data.head()
+data.tail()
+data.shape
+data.columns
+data.dtypes
+data.dtypes[data.dtypes == "int64"]
+data.dtypes[data.dtypes == "object"]
+data.dtypes[data.dtypes == "float64"]
+
+-------------------------
+CONVERSION OF DATA TYPES
+-------------------------
+data["customer_nw_category"] =
+data["customer_nw_category"].astype("category")
+data["branch_code"] = data["branch_code"].astype("category")
+data["churn"] = data["churn"].astype("category")
+data["gender"] = data["gender"].astype("category")
+data["occupation"] = data["occupation"].astype("category")
+data["city"] = data["city"].astype("category")
+data["dependents"] = data["dependents"].astype("Int64")
+data.dtypes
+date = pd.DatetimeIndex(data["last_transaction"])
+data["doy_lt"] = date.dayofyear #Day of Year of Last Transaction
+data["woy_lt"] = date.weekofyear #Week of Year of Last Transaction
+data["moy_lt"] = date.month #Month of Yeaar of Last Transaction
+data["dow_lt"] = date.dayofweek #Day of Week of Last Transaction
+data.head()
+
+------------------------
+DELETING EXCESS COLUMNS
+------------------------
+data = data.drop(columns = ["last_transaction",
+"Day_of_Year_of_Last_Transaction", "Week_of_Year_of_Last_Transaction",
+"Month_of_Year_of_Last_Transaction", "Day_of_Week_of_Last_Transaction"])
+data.head()
+data.dtypes
+
+--------------------
+UNIVARIATE ANALYSIS
+--------------------
+data.select_dtypes(include = ["int64", "Int64", "float64"]).dtypes
+
+customer_details=["customer_id", "vintage", "age"]
+current_month_details=["current_balance", "current_month_credit",
+"current_month_debit", "current_month_balance"]
+previous_month_details=["previous_month_end_balance",
+"previous_month_credit", "previous_month_debit", "previous_month_balance"]
+previous_quarter_details=["average_monthly_balance_prevQ",
+"average_monthly_balance_prevQ2"]
+transaction_date=["doy_lt", "woy_lt", "moy_lt", "dow_lt"]
+
+def UVA_numeric(data, var_group):
+ size = len(var_group)
+ plt.figure(figsize = (7*size,3), dpi = 100)
+
+ for j,i in enumerate(var_group):
+ mini = data[i].min()
+ maxi = data[i].max()
+ ran = data[i].max()-data[i].min()
+ mean = data[i].mean()
+ median = data[i].median()
+ st_dev = data[i].std()
+ skew = data[i].skew()
+ kurt = data[i].kurtosis()
+
+ points = mean-st_dev, mean+st_dev
+
+ plt.subplot(1,size,j+1)
+ sea.kdeplot(data[i], shade=True)
+ sea.lineplot(points, [0,0], color = 'black', label = "std_dev")
+ sea.scatterplot([mini,maxi], [0,0], color = 'orange', label = "min/max")
+ sea.scatterplot([mean], [0], color = 'red', label = "mean")
+ sea.scatterplot([median], [0], color = 'blue', label = "median")
+ plt.xlabel('{}'.format(i), fontsize = 20)
+ plt.ylabel('density')
+ plt.title('std_dev = {}; kurtosis = {};\nskew = {}; range = {}\nmean = {}; median
+= {}'.format((round(points[0],2),round(points[1],2)),
+ round(kurt,2),
+ round(skew,2),
+(round(mini,2),round(maxi,2),round(ran,2)),
+round(mean,2),
+round(median,2)))
+
+UVA_numeric(data,customer_details)
+UVA_numeric(data, current_month_details)
+UVA_numeric(data, previous_month_details)
+UVA_numeric(data, previous_quarter_details)
+UVA_numeric(data, previous_quarter_details)
+
+------------------
+REMOVING OUTLIERS
+------------------
+factor = 3
+cm_data = data[current_month_details]
+cm_data = cm_data[cm_data['current_balance'] <
+factor*cm_data['current_balance'].std()]
+cm_data = cm_data[cm_data['current_month_credit'] <
+factor*cm_data['current_month_credit'].std()]
+cm_data = cm_data[cm_data['current_month_debit'] <
+factor*cm_data['current_month_debit'].std()]
+cm_data = cm_data[cm_data['current_month_balance'] <
+factor*cm_data['current_month_balance'].std()]
+len(data), len(cm_data)
+UVA_numeric(data, current_month_details)
+
+--------------------
+UNIVARIATE ANALYSIS
+--------------------
+data.select_dtypes(exclude = ["int64", "Int64", "float64"]).dtypes
+def UVA_category(data, var_group):
+ size = len(var_group)
+ plt.figure(figsize = (7*size,5), dpi = 100)
+
+ for j,i in enumerate(var_group):
+ norm_count = data[i].value_counts(normalize = True)
+ n_uni = data[i].nunique()
+ plt.subplot(1,size,j+1)
+ sea.barplot(norm_count, norm_count.index , order = norm_count.index)
+ plt.xlabel('fraction/percent', fontsize = 20)
+ plt.ylabel('{}'.format(i), fontsize = 20)
+ plt.title('n_uniques = {} \n value counts \n {};'.format(n_uni,norm_count))
+ 
+UVA_category(data, ['occupation', 'gender', 'customer_nw_category'])
+UVA_category(data, ['city', 'branch_code'])
+
+#Plotting "city"
+plt.figure(figsize = (5,5), dpi = 120)
+city_count = data['city'].value_counts(normalize=True)
+sea.barplot(city_count.index, city_count , order = city_count.index)
+plt.xlabel('City')
+plt.ylabel('fraction/percent')
+plt.ylim(0,0.02)
+
+#Plotting "branch_code"
+plt.figure(figsize = (5,5), dpi = 120)
+branch_count = data['branch_code'].value_counts()
+sea.barplot(branch_count.index, branch_count , order = branch_count.index)
+plt.xlabel('branch_code')
+plt.ylabel('fraction/percent')
+#plt.ylim(0,0.02)
+
+UVA_category(data, ['churn'])
+
+data.isnull().sum()
+UVA_category(data, ['churn'])
+
+def UVA_outlier(data, var_group, include_outlier = True):
+ size = len(var_group)
+ plt.figure(figsize = (7*size,4), dpi = 100)
+
+ for j,i in enumerate(var_group):
+ quant25 = data[i].quantile(0.25)
+ quant75 = data[i].quantile(0.75)
+ IQR = quant75 - quant25
+ med = data[i].median()
+ whis_low = quant25-(1.5*IQR)
+ whis_high = quant75+(1.5*IQR)
+ outlier_high = len(data[i][data[i]>whis_high])
+ outlier_low = len(data[i][data[i]<whis_low])
+ if include_outlier == True:
+ plt.subplot(1,size,j+1)
+ sea.boxplot(data[i], orient="v")
+ plt.ylabel('{}'.format(i))
+ plt.title('With Outliers\nIQR = {}; Median = {} \n 2nd,3rd quartile = {};\n
+Outlier (low/high) = {} \n'.format(
+ round(IQR,2),
+ round(med,2),
+
+(round(quant25,2),round(quant75,2)),
+ (outlier_low,outlier_high)
+ ))
+ else:
+ data2 = data[var_group][:]
+ data2[i][data2[i]>whis_high] = whis_high+1
+ data2[i][data2[i]<whis_low] = whis_low-1
+
+ plt.subplot(1,size,j+1)
+ sea.boxplot(data2[i], orient="v")
+ plt.ylabel('{}'.format(i))
+ plt.title('Without Outliers\nIQR = {}; Median = {} \n 2nd,3rd quartile = {};\n
+Outlier (low/high) = {} \n'.format(
+ round(IQR,2),
+round(med,2),
+(round(quant25,2),round(quant75,2)),
+(outlier_low,outlier_high)
+))
+
+UVA_outlier(data, current_month_details,)
+UVA_outlier(data, current_month_details, include_outlier=False)
+UVA_outlier(data, previous_month_details)
+UVA_outlier(data, previous_month_details, include_outlier=False)
+UVA_outlier(data,previous_quarter_details)
+UVA_outlier(data,previous_quarter_details, include_outlier=False)
+
+-------------------
+BIVARIATE ANALYSIS
+-------------------
+numerical = data.select_dtypes(include = ["int64", "Int64", "float64"])
+numerical.dtypes
+
+-------------------
+CORRELATION MATRIX
+-------------------
+correlation = numerical.dropna().corr()
+correlation
+
+plt.figure(figsize=(36,6), dpi=140)
+for j,i in enumerate(['pearson','kendall','spearman']):
+ plt.subplot(1,3,j+1)
+ correlation = numerical.dropna().corr(method=i)
+ sea.heatmap(correlation, linewidth = 2)
+ plt.title(i, fontsize=18)
+ 
+ var = []
+var.extend(previous_month_details)
+var.extend(current_month_details)
+var.extend(previous_quarter_details)
+
+plt.figure(figsize=(36,6), dpi=140)
+for j,i in enumerate(['pearson','kendall','spearman']):
+ plt.subplot(1,3,j+1)
+ correlation = numerical[var].dropna().corr(method=i)
+ sea.heatmap(correlation, linewidth = 2)
+ plt.title(i, fontsize=18)
+
+-------------------------
+PLOTTING THE INFERENCES
+-------------------------
+transactions =
+['current_month_credit','current_month_debit','previous_month_credit','previous_
+month_debit']
+balance =
+['previous_month_end_balance','previous_month_balance','current_balance','curren
+t_month_balance']
+plt.figure(dpi=140)
+sea.pairplot(numerical[transactions])
+
+for column in var:
+ mini=1
+ if numerical[column].min()<0:
+ mini = abs(numerical[column].min()) + 1
+
+ numerical[column] = [i+mini for i in numerical[column]]
+ numerical[column] = numerical[column].map(lambda x : np.log(x))
+plt.figure(dpi=140)
+sea.pairplot(numerical[transactions])
+
+plt.figure(dpi=140)
+sea.pairplot(numerical[balance])
+
+plt.figure(dpi=140)
+sea.scatterplot(numerical['average_monthly_balance_prevQ'],
+numerical['average_monthly_balance_prevQ2'])
+
+----------------------
+MULTIVARIATE ANALYSIS
+----------------------
+data.dtypes
+data["gender"] = data["gender"].astype("object")
+data["occupation"] = data["occupation"].astype("object")
+data["customer_nw_category"] = data["customer_nw_category"].astype("object")
+data["churn"] = data["churn"].astype("int")
+data["city"] = data["city"].astype("float")
+data["branch_code"] = data["branch_code"].astype("float")
+data.pivot_table("churn", ["gender", "occupation"], "customer_nw_category",
+aggfunc = "mean")*100
+
+age = pd.cut(data['age'], [0, 25, 50, 100])
+data.pivot_table('churn', ['gender', age], 'occupation', aggfunc='mean')*100
+
+balance = pd.qcut(data['current_balance'], 3)
+data.pivot_table('churn', ['gender', age], [balance, 'occupation'],
+aggfunc='mean')*100
+
+def Grouped_Box_Plot(data, cont, cat1, cat2):
+ sea.boxplot(x=cat1, y=cont, hue=cat2, data=data, orient='v')
+ plt.title('Boxplot')
+Grouped_Box_Plot(data,'age', 'occupation', 'churn')
+
+Grouped_Box_Plot(data,'vintage','gender', 'churn')
+
+---------------
+VISUALIZATIONS
+---------------
+balance_cols = ['current_balance','previous_month_end_balance',
+ 'current_month_balance', 'previous_month_balance']
+data1 = pd.DataFrame()
+for i in balance_cols:
+ data1[str('log_')+ i] = np.log(data[i] + 6000)
+log_balance_cols = data1.columns
+data1['churn'] = data['churn']
+sea.pairplot(data1,vars=log_balance_cols,hue ='churn',plot_kws={'alpha':0.1})
+plt.show()
+
+cr_dr_cols = ['current_month_credit','previous_month_credit',
+ 'current_month_debit', 'previous_month_debit']
+data1 = pd.DataFrame()
+for i in cr_dr_cols:
+ data1[str('log_')+ i] = np.log(data[i])
+log_dr_cr_cols = data1.columns
+data1['churn'] = data['churn']
+sea.pairplot(data1,vars=log_dr_cr_cols, hue = 'churn',plot_kws={'alpha':0.5})
+plt.show()
+
+-----------------------------
+PREPARING DATA FOR MODELLING
+-----------------------------
+data_encoded = pd.get_dummies(data, drop_first=True)
+data_encoded.head()
+
+def fill_mode(df):
+ for column in df.columns:
+ df[column].fillna(df[column].mode()[0], inplace=True)
+fill_mode(data_encoded)
+
+data_encoded = data_encoded.drop('customer_id', axis=1)
+x = data_encoded.drop(['churn'], axis=1)
+y = data_encoded['churn']
+x.shape, y.shape
+
+data_encoded.columns
+from sklearn.model_selection import train_test_split
+train_x,test_x,train_y,test_y = train_test_split(x,y, random_state = 56)
+
+from sklearn.preprocessing import MinMaxScaler
+scaler = MinMaxScaler()
+cols = train_x.columns
+cols
+
+train_x_scaled = scaler.fit_transform(train_x)
+train_x_scaled = pd.DataFrame(train_x_scaled, columns=cols)
+train_x_scaled.head()
+
+test_x_scaled = scaler.transform(test_x)
+test_x_scaled = pd.DataFrame(test_x_scaled, columns=cols)
+test_x_scaled.head()
+
+------------------
+TESTING THE MODEL
+------------------
+from sklearn.linear_model import LogisticRegression as LogReg
+from sklearn.metrics import accuracy_score
+logreg = LogReg()
+logreg.fit(train_x, train_y)
+train_predict = logreg.predict(train_x)
+train_predict
+k = accuracy_score(train_predict, train_y)
+print('Training accuracy_score', k )
+test_predict = logreg.predict(test_x)
+k = accuracy_score(test_predict, test_y)
+print('Test accuracy_score ', k )
